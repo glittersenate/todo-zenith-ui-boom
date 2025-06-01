@@ -3,23 +3,28 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Target } from "lucide-react";
+import { Target, Calendar, CalendarDays } from "lucide-react";
 
 interface GoalSetterProps {
-  currentGoal: number;
-  onSetGoal: (goal: number) => void;
+  currentWeeklyGoal: number;
+  currentMonthlyGoal: number;
+  onSetWeeklyGoal: (goal: number) => void;
+  onSetMonthlyGoal: (goal: number) => void;
   isDarkMode: boolean;
 }
 
-const GoalSetter = ({ currentGoal, onSetGoal, isDarkMode }: GoalSetterProps) => {
-  const [newGoal, setNewGoal] = useState(currentGoal.toString());
+const GoalSetter = ({ currentWeeklyGoal, currentMonthlyGoal, onSetWeeklyGoal, onSetMonthlyGoal, isDarkMode }: GoalSetterProps) => {
+  const [newWeeklyGoal, setNewWeeklyGoal] = useState(currentWeeklyGoal.toString());
+  const [newMonthlyGoal, setNewMonthlyGoal] = useState(currentMonthlyGoal.toString());
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const goal = parseInt(newGoal);
-    if (goal > 0) {
-      onSetGoal(goal);
+    const weeklyGoal = parseInt(newWeeklyGoal);
+    const monthlyGoal = parseInt(newMonthlyGoal);
+    if (weeklyGoal > 0 && monthlyGoal > 0) {
+      onSetWeeklyGoal(weeklyGoal);
+      onSetMonthlyGoal(monthlyGoal);
       setIsOpen(false);
     }
   };
@@ -36,7 +41,7 @@ const GoalSetter = ({ currentGoal, onSetGoal, isDarkMode }: GoalSetterProps) => 
           }`}
         >
           <Target className="w-4 h-4 mr-2" />
-          Set Weekly Goal
+          Set Goals
         </Button>
       </DialogTrigger>
       <DialogContent className={`${
@@ -44,21 +49,43 @@ const GoalSetter = ({ currentGoal, onSetGoal, isDarkMode }: GoalSetterProps) => 
       }`}>
         <DialogHeader>
           <DialogTitle className={isDarkMode ? "text-white" : "text-gray-900"}>
-            Set Your Weekly XP Goal
+            Set Your XP Goals
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className={`block text-sm font-medium mb-2 ${
+            <label className={`flex items-center gap-2 text-sm font-medium mb-2 ${
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}>
+              <Calendar className="w-4 h-4" />
               Weekly Goal (XP Points)
             </label>
             <Input
               type="number"
-              value={newGoal}
-              onChange={(e) => setNewGoal(e.target.value)}
-              placeholder="e.g., 100"
+              value={newWeeklyGoal}
+              onChange={(e) => setNewWeeklyGoal(e.target.value)}
+              placeholder="e.g., 50"
+              className={`${
+                isDarkMode 
+                  ? "bg-white/10 border-white/20 text-white" 
+                  : "bg-white border-gray-300"
+              }`}
+              min="1"
+              required
+            />
+          </div>
+          <div>
+            <label className={`flex items-center gap-2 text-sm font-medium mb-2 ${
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            }`}>
+              <CalendarDays className="w-4 h-4" />
+              Monthly Goal (XP Points)
+            </label>
+            <Input
+              type="number"
+              value={newMonthlyGoal}
+              onChange={(e) => setNewMonthlyGoal(e.target.value)}
+              placeholder="e.g., 200"
               className={`${
                 isDarkMode 
                   ? "bg-white/10 border-white/20 text-white" 
@@ -70,9 +97,9 @@ const GoalSetter = ({ currentGoal, onSetGoal, isDarkMode }: GoalSetterProps) => 
           </div>
           <Button 
             type="submit" 
-            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
           >
-            Set Goal
+            Set Goals
           </Button>
         </form>
       </DialogContent>

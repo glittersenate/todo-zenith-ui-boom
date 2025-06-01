@@ -46,7 +46,7 @@ const TaskStats = ({ totalTasks, completedTasks, isDarkMode }: TaskStatsProps) =
         {/* Progress */}
         <div className="text-center">
           <div className={`text-3xl font-bold ${
-            isDarkMode ? "text-purple-400" : "text-purple-600"
+            isDarkMode ? "text-blue-400" : "text-blue-600"
           }`}>
             {Math.round(completionPercentage)}%
           </div>
@@ -55,11 +55,11 @@ const TaskStats = ({ totalTasks, completedTasks, isDarkMode }: TaskStatsProps) =
           }`}>
             Progress
           </div>
-          <div className={`w-full h-2 rounded-full mt-2 ${
+          <div className={`w-[85%] mx-auto h-2 rounded-full mt-2 ${
             isDarkMode ? "bg-white/20" : "bg-gray-200"
           }`}>
             <div 
-              className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
               style={{ width: `${completionPercentage}%` }}
             />
           </div>

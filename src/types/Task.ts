@@ -14,6 +14,8 @@ export interface Task {
 export interface UserProgress {
   totalPoints: number;
   weeklyGoal: number;
+  monthlyGoal: number;
   currentWeekPoints: number;
+  currentMonthPoints: number;
   level: number;
 }

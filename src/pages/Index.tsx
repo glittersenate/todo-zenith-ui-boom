@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import TaskInput from "@/components/TaskInput";
 import TaskList from "@/components/TaskList";
@@ -13,11 +12,16 @@ import { useToast } from "@/hooks/use-toast";
 const Index = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [lastDeletedTask, setLastDeletedTask] = useState<Task | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem("isDarkMode");
+    return saved ? JSON.parse(saved) : false;
+  });
   const [userProgress, setUserProgress] = useState<UserProgress>({
     totalPoints: 0,
     weeklyGoal: 50,
+    monthlyGoal: 200,
     currentWeekPoints: 0,
+    currentMonthPoints: 0,
     level: 1
   });
   const [pointsAnimation, setPointsAnimation] = useState({ show: false, points: 0 });
@@ -38,7 +42,13 @@ const Index = () => {
     
     if (savedProgress) {
       try {
-        setUserProgress(JSON.parse(savedProgress));
+        const parsed = JSON.parse(savedProgress);
+        // Add default monthly values if they don't exist
+        setUserProgress({
+          monthlyGoal: 200,
+          currentMonthPoints: 0,
+          ...parsed
+        });
       } catch (error) {
         console.error("Error loading progress:", error);
       }
@@ -53,6 +63,11 @@ const Index = () => {
   useEffect(() => {
     localStorage.setItem("userProgress", JSON.stringify(userProgress));
   }, [userProgress]);
+
+  // Save dark mode preference
+  useEffect(() => {
+    localStorage.setItem("isDarkMode", JSON.stringify(isDarkMode));
+  }, [isDarkMode]);
 
   const getPointsForPriority = (priority?: string) => {
     switch (priority) {
@@ -105,6 +120,7 @@ const Index = () => {
                 ...prev,
                 totalPoints: newTotalPoints,
                 currentWeekPoints: prev.currentWeekPoints + points,
+                currentMonthPoints: prev.currentMonthPoints + points,
                 level: newLevel
               };
             });
@@ -127,6 +143,7 @@ const Index = () => {
               ...prev,
               totalPoints: Math.max(0, prev.totalPoints - points),
               currentWeekPoints: Math.max(0, prev.currentWeekPoints - points),
+              currentMonthPoints: Math.max(0, prev.currentMonthPoints - points),
               level: calculateLevel(Math.max(0, prev.totalPoints - points))
             }));
           }
@@ -150,6 +167,7 @@ const Index = () => {
           ...prev,
           totalPoints: Math.max(0, prev.totalPoints - taskToRemove.pointsEarned!),
           currentWeekPoints: Math.max(0, prev.currentWeekPoints - taskToRemove.pointsEarned!),
+          currentMonthPoints: Math.max(0, prev.currentMonthPoints - taskToRemove.pointsEarned!),
           level: calculateLevel(Math.max(0, prev.totalPoints - taskToRemove.pointsEarned!))
         }));
       }
@@ -171,6 +189,7 @@ const Index = () => {
           ...prev,
           totalPoints: prev.totalPoints + lastDeletedTask.pointsEarned!,
           currentWeekPoints: prev.currentWeekPoints + lastDeletedTask.pointsEarned!,
+          currentMonthPoints: prev.currentMonthPoints + lastDeletedTask.pointsEarned!,
           level: calculateLevel(prev.totalPoints + lastDeletedTask.pointsEarned!)
         }));
       }
@@ -192,8 +211,16 @@ const Index = () => {
   const setWeeklyGoal = (goal: number) => {
     setUserProgress(prev => ({ ...prev, weeklyGoal: goal }));
     toast({
-      title: "Goal Updated! 🎯",
+      title: "Weekly Goal Updated! 🎯",
       description: `Your weekly goal is now ${goal} XP!`,
+    });
+  };
+
+  const setMonthlyGoal = (goal: number) => {
+    setUserProgress(prev => ({ ...prev, monthlyGoal: goal }));
+    toast({
+      title: "Monthly Goal Updated! 🎯",
+      description: `Your monthly goal is now ${goal} XP!`,
     });
   };
 
@@ -203,16 +230,16 @@ const Index = () => {
   return (
     <div className={`min-h-screen transition-all duration-500 ${
       isDarkMode 
-        ? "bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900" 
-        : "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
+        ? "bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900" 
+        : "bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50"
     }`}>
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
         <div className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl ${
-          isDarkMode ? "bg-purple-500" : "bg-blue-400"
+          isDarkMode ? "bg-blue-500" : "bg-blue-400"
         }`}></div>
         <div className={`absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl ${
-          isDarkMode ? "bg-pink-500" : "bg-indigo-400"
+          isDarkMode ? "bg-indigo-500" : "bg-indigo-400"
         }`}></div>
       </div>
 
@@ -227,16 +254,18 @@ const Index = () => {
             }`}>
               <h1 className={`text-5xl font-bold bg-gradient-to-r ${
                 isDarkMode 
-                  ? "from-white to-purple-200" 
-                  : "from-gray-800 to-purple-600"
+                  ? "from-white to-blue-200" 
+                  : "from-gray-800 to-blue-600"
               } bg-clip-text text-transparent`}>
-                ✨ TaskFlow
+                ✨ NozelTask
               </h1>
             </div>
             <ThemeToggle isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
             <GoalSetter 
-              currentGoal={userProgress.weeklyGoal} 
-              onSetGoal={setWeeklyGoal} 
+              currentWeeklyGoal={userProgress.weeklyGoal}
+              currentMonthlyGoal={userProgress.monthlyGoal}
+              onSetWeeklyGoal={setWeeklyGoal}
+              onSetMonthlyGoal={setMonthlyGoal}
               isDarkMode={isDarkMode}
             />
           </div>
