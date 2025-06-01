@@ -7,4 +7,13 @@ export interface Task {
   deadline?: string;
   priority?: "low" | "medium" | "high";
   recurring?: "daily" | "weekly" | "monthly";
+  pointsEarned?: number;
+  completedAt?: string;
+}
+
+export interface UserProgress {
+  totalPoints: number;
+  weeklyGoal: number;
+  currentWeekPoints: number;
+  level: number;
 }

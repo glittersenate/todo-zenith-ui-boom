@@ -2,6 +2,7 @@
 import { Task } from "@/types/Task";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
 interface TaskItemProps {
@@ -41,6 +42,15 @@ const TaskItem = ({ task, onToggle, onRemove, isDarkMode, style, className }: Ta
     }
   };
 
+  const getPointsForPriority = (priority?: string) => {
+    switch (priority) {
+      case "low": return 3;
+      case "medium": return 5;
+      case "high": return 7;
+      default: return 2;
+    }
+  };
+
   return (
     <div 
       className={`group p-4 rounded-2xl backdrop-blur-md transition-all duration-300 hover:scale-[1.02] border-l-4 ${
@@ -70,33 +80,40 @@ const TaskItem = ({ task, onToggle, onRemove, isDarkMode, style, className }: Ta
             {task.completed && "✅ "}{task.text}
           </div>
           
-          {(task.deadline || task.priority || task.recurring) && (
-            <div className="flex items-center gap-3 mt-2 text-sm">
-              {task.deadline && (
-                <span className={`flex items-center gap-1 px-2 py-1 rounded-lg ${
-                  isDarkMode ? "bg-blue-500/20 text-blue-300" : "bg-blue-100 text-blue-700"
-                }`}>
-                  📅 {format(new Date(task.deadline), "MMM dd")}
-                </span>
-              )}
-              
-              {task.priority && (
-                <span className={`flex items-center gap-1 px-2 py-1 rounded-lg ${
-                  isDarkMode ? "bg-gray-500/20 text-gray-300" : "bg-gray-100 text-gray-700"
-                }`}>
-                  {getPriorityIcon(task.priority)} {task.priority}
-                </span>
-              )}
-              
-              {task.recurring && (
-                <span className={`flex items-center gap-1 px-2 py-1 rounded-lg ${
-                  isDarkMode ? "bg-purple-500/20 text-purple-300" : "bg-purple-100 text-purple-700"
-                }`}>
-                  {getRecurringIcon(task.recurring)} {task.recurring}
-                </span>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-3 mt-2 text-sm flex-wrap">
+            {/* Points Badge */}
+            <Badge className={`${
+              task.completed 
+                ? "bg-gradient-to-r from-green-500 to-emerald-500" 
+                : "bg-gradient-to-r from-yellow-500 to-orange-500"
+            } text-white`}>
+              {task.completed ? `+${task.pointsEarned || getPointsForPriority(task.priority)} XP` : `${getPointsForPriority(task.priority)} XP`}
+            </Badge>
+
+            {task.deadline && (
+              <span className={`flex items-center gap-1 px-2 py-1 rounded-lg ${
+                isDarkMode ? "bg-blue-500/20 text-blue-300" : "bg-blue-100 text-blue-700"
+              }`}>
+                📅 {format(new Date(task.deadline), "MMM dd")}
+              </span>
+            )}
+            
+            {task.priority && (
+              <span className={`flex items-center gap-1 px-2 py-1 rounded-lg ${
+                isDarkMode ? "bg-gray-500/20 text-gray-300" : "bg-gray-100 text-gray-700"
+              }`}>
+                {getPriorityIcon(task.priority)} {task.priority}
+              </span>
+            )}
+            
+            {task.recurring && (
+              <span className={`flex items-center gap-1 px-2 py-1 rounded-lg ${
+                isDarkMode ? "bg-purple-500/20 text-purple-300" : "bg-purple-100 text-purple-700"
+              }`}>
+                {getRecurringIcon(task.recurring)} {task.recurring}
+              </span>
+            )}
+          </div>
         </div>
 
         <Button

@@ -3,19 +3,31 @@ import { useState, useEffect } from "react";
 import TaskInput from "@/components/TaskInput";
 import TaskList from "@/components/TaskList";
 import TaskStats from "@/components/TaskStats";
+import PointsDisplay from "@/components/PointsDisplay";
+import GoalSetter from "@/components/GoalSetter";
+import PointsAnimation from "@/components/PointsAnimation";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Task } from "@/types/Task";
+import { Task, UserProgress } from "@/types/Task";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [lastDeletedTask, setLastDeletedTask] = useState<Task | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [userProgress, setUserProgress] = useState<UserProgress>({
+    totalPoints: 0,
+    weeklyGoal: 50,
+    currentWeekPoints: 0,
+    level: 1
+  });
+  const [pointsAnimation, setPointsAnimation] = useState({ show: false, points: 0 });
   const { toast } = useToast();
 
-  // Load tasks from localStorage on component mount
+  // Load data from localStorage on component mount
   useEffect(() => {
     const savedTasks = localStorage.getItem("tasks");
+    const savedProgress = localStorage.getItem("userProgress");
+    
     if (savedTasks) {
       try {
         setTasks(JSON.parse(savedTasks));
@@ -23,12 +35,37 @@ const Index = () => {
         console.error("Error loading tasks:", error);
       }
     }
+    
+    if (savedProgress) {
+      try {
+        setUserProgress(JSON.parse(savedProgress));
+      } catch (error) {
+        console.error("Error loading progress:", error);
+      }
+    }
   }, []);
 
-  // Save tasks to localStorage whenever tasks change
+  // Save data to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem("tasks", JSON.stringify(tasks));
   }, [tasks]);
+
+  useEffect(() => {
+    localStorage.setItem("userProgress", JSON.stringify(userProgress));
+  }, [userProgress]);
+
+  const getPointsForPriority = (priority?: string) => {
+    switch (priority) {
+      case "low": return 3;
+      case "medium": return 5;
+      case "high": return 7;
+      default: return 2;
+    }
+  };
+
+  const calculateLevel = (totalPoints: number) => {
+    return Math.floor(totalPoints / 50) + 1;
+  };
 
   const addTask = (taskText: string, deadline?: string, priority?: string, recurring?: string) => {
     const newTask: Task = {
@@ -50,9 +87,54 @@ const Index = () => {
 
   const toggleTask = (id: string) => {
     setTasks(prev =>
-      prev.map(task =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
+      prev.map(task => {
+        if (task.id === id) {
+          const updatedTask = { ...task, completed: !task.completed };
+          
+          // If task is being completed, award points
+          if (!task.completed && updatedTask.completed) {
+            const points = getPointsForPriority(task.priority);
+            updatedTask.pointsEarned = points;
+            updatedTask.completedAt = new Date().toISOString();
+            
+            // Update user progress
+            setUserProgress(prev => {
+              const newTotalPoints = prev.totalPoints + points;
+              const newLevel = calculateLevel(newTotalPoints);
+              return {
+                ...prev,
+                totalPoints: newTotalPoints,
+                currentWeekPoints: prev.currentWeekPoints + points,
+                level: newLevel
+              };
+            });
+            
+            // Show points animation
+            setPointsAnimation({ show: true, points });
+            
+            toast({
+              title: `Task Completed! +${points} XP 🎉`,
+              description: "Keep up the great work!",
+            });
+          }
+          // If task is being uncompleted, remove points
+          else if (task.completed && !updatedTask.completed && task.pointsEarned) {
+            const points = task.pointsEarned;
+            updatedTask.pointsEarned = undefined;
+            updatedTask.completedAt = undefined;
+            
+            setUserProgress(prev => ({
+              ...prev,
+              totalPoints: Math.max(0, prev.totalPoints - points),
+              currentWeekPoints: Math.max(0, prev.currentWeekPoints - points),
+              level: calculateLevel(Math.max(0, prev.totalPoints - points))
+            }));
+          }
+          
+          return updatedTask;
+        }
+        return task;
+      })
     );
   };
 
@@ -61,6 +143,17 @@ const Index = () => {
     if (taskToRemove) {
       setLastDeletedTask(taskToRemove);
       setTasks(prev => prev.filter(task => task.id !== id));
+      
+      // If completed task is removed, subtract points
+      if (taskToRemove.completed && taskToRemove.pointsEarned) {
+        setUserProgress(prev => ({
+          ...prev,
+          totalPoints: Math.max(0, prev.totalPoints - taskToRemove.pointsEarned!),
+          currentWeekPoints: Math.max(0, prev.currentWeekPoints - taskToRemove.pointsEarned!),
+          level: calculateLevel(Math.max(0, prev.totalPoints - taskToRemove.pointsEarned!))
+        }));
+      }
+      
       toast({
         title: "Task Removed",
         description: "Task deleted successfully. You can undo this action.",
@@ -71,6 +164,17 @@ const Index = () => {
   const undoDelete = () => {
     if (lastDeletedTask) {
       setTasks(prev => [lastDeletedTask, ...prev]);
+      
+      // If the restored task was completed, restore points
+      if (lastDeletedTask.completed && lastDeletedTask.pointsEarned) {
+        setUserProgress(prev => ({
+          ...prev,
+          totalPoints: prev.totalPoints + lastDeletedTask.pointsEarned!,
+          currentWeekPoints: prev.currentWeekPoints + lastDeletedTask.pointsEarned!,
+          level: calculateLevel(prev.totalPoints + lastDeletedTask.pointsEarned!)
+        }));
+      }
+      
       setLastDeletedTask(null);
       toast({
         title: "Task Restored! ↩️",
@@ -83,6 +187,14 @@ const Index = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const setWeeklyGoal = (goal: number) => {
+    setUserProgress(prev => ({ ...prev, weeklyGoal: goal }));
+    toast({
+      title: "Goal Updated! 🎯",
+      description: `Your weekly goal is now ${goal} XP!`,
+    });
   };
 
   const completedTasks = tasks.filter(task => task.completed).length;
@@ -122,13 +234,21 @@ const Index = () => {
               </h1>
             </div>
             <ThemeToggle isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+            <GoalSetter 
+              currentGoal={userProgress.weeklyGoal} 
+              onSetGoal={setWeeklyGoal} 
+              isDarkMode={isDarkMode}
+            />
           </div>
           <p className={`text-xl ${
             isDarkMode ? "text-gray-300" : "text-gray-600"
           }`}>
-            Your beautiful, modern task management experience
+            Your gamified task management experience
           </p>
         </div>
+
+        {/* Points Display */}
+        <PointsDisplay progress={userProgress} isDarkMode={isDarkMode} />
 
         {/* Stats */}
         <TaskStats 
@@ -157,20 +277,27 @@ const Index = () => {
               ? "bg-white/5 border border-white/10" 
               : "bg-white/40 border border-white/60"
           }`}>
-            <div className="text-6xl mb-4">📝</div>
+            <div className="text-6xl mb-4">🎮</div>
             <h3 className={`text-2xl font-semibold mb-2 ${
               isDarkMode ? "text-white" : "text-gray-800"
             }`}>
-              No tasks yet!
+              Ready to earn some XP?
             </h3>
             <p className={`text-lg ${
               isDarkMode ? "text-gray-400" : "text-gray-600"
             }`}>
-              Add your first task above to get started
+              Add your first task and start gaining points!
             </p>
           </div>
         )}
       </div>
+
+      {/* Points Animation */}
+      <PointsAnimation 
+        points={pointsAnimation.points}
+        trigger={pointsAnimation.show}
+        onComplete={() => setPointsAnimation({ show: false, points: 0 })}
+      />
     </div>
   );
 };
